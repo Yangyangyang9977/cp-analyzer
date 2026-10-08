@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CP Performance Clause Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .clause-input{background:#eaf3f0;border:1px solid #d0e4de;border-radius:8px;padding:23px 24px;margin-bottom:22px;display:grid;grid-template-columns:.83fr 1.45fr;gap:28px}.clause-input-copy>p:not(.eyebrow){font-size:11px;line-height:1.7;color:#5d7474;margin:13px 0}.detect-list{display:flex;gap:6px;flex-wrap:wrap}.detect-list span{font:9px 'DM Mono';color:#356e6b;background:#d6ebe5;border-radius:20px;padding:5px 7px}.clause-editor{background:#fff;border:1px solid #d9e4e1;border-radius:5px;overflow:hidden}.clause-editor textarea{border:0;resize:vertical;display:block;width:100%;height:116px;padding:13px 14px;font:11px/1.65 'DM Mono',monospace;color:#365354;outline:0}.editor-footer{border-top:1px solid #e4ebe9;padding:8px 10px 8px 14px;display:flex;align-items:center;justify-content:space-between;gap:15px}.editor-footer small{font-size:10px;color:#66807f}.editor-footer .primary{padding:8px 11px;font-size:11px}.profile-head{display:flex;justify-content:space-between;align-items:center;margin:22px 0 8px}.profile-note{font:10px 'DM Mono';color:#81908f}.profile-table{border:1px solid #dce7e4;border-radius:5px;overflow:hidden}.profile-row{display:grid;grid-template-columns:1.2fr .7fr .8fr 1fr;align-items:center;min-height:39px;padding:6px 10px;border-top:1px solid #e4ecea;font-size:10px}.profile-row:first-child{border-top:0}.profile-labels{min-height:auto;background:#eff5f3;color:#708381;font:9px 'DM Mono';letter-spacing:.35px;text-transform:uppercase}.condition{font-weight:700}.condition.laden{color:#277c73}.condition.ballast{color:#44788e}.condition.other{color:#8a795f}.power{justify-self:start;border-radius:12px;padding:3px 7px;font:9px 'DM Mono';letter-spacing:.3px}.power.eco{background:#ddf0e9;color:#29766c}.power.full{background:#e4eff5;color:#397087}.power.other{background:#f2eee7;color:#8a704d}.profile-row input{width:53px;background:transparent;border:0;border-bottom:1px solid #c5d8d5;padding:2px 0;color:#1c4a4b;font:700 12px 'DM Mono';outline:0}.profile-row input::placeholder{color:#9ca9a7}.profile-row small{font:9px 'DM Mono';color:#718685;margin-left:3px}.other-profile{background:#fcfcfa}.abt-band{margin-top:15px}@media(max-width:900px){.clause-input{grid-template-columns:1fr}}@media(max-width:540px){.clause-input{padding:18px}.editor-footer{align-items:flex-start;flex-direction:column}.clause-editor textarea{height:150px}.profile-row{grid-template-columns:1.1fr .75fr .9fr 1fr;padding:6px}.profile-row input{width:39px}}
+      .warranty-card .card-heading,.weather-card .card-heading,.exclusions-card .card-heading,.compact-window .card-heading{display:none}.warranty-grid{grid-template-columns:2fr .78fr}.weather-grid{grid-template-columns:1.35fr .9fr}.profile-head{margin-top:2px}.profile-head .label{display:none}.compact-window{padding:20px 22px;display:flex;flex-direction:column;justify-content:center;min-height:0}.compact-window .window-content{display:flex;align-items:baseline;gap:12px}.compact-window .window-number{margin:0;padding:0;border:0}.compact-window .window-number input{font-size:35px;width:78px}.compact-window .window-title{margin:0;font:10px 'DM Mono';color:#a6c4bf;text-transform:uppercase;letter-spacing:.4px}.window-rules{display:flex;gap:9px;margin-top:14px}.window-rules span{background:#285356;border-radius:3px;padding:7px;font-size:9px;color:#b9d2cd;line-height:1.35;flex:1}.window-rules b{display:block;color:#8dd9c4;font:600 13px 'DM Mono';margin-bottom:2px}.wave-reading{display:grid;gap:4px}.wave-reading strong{font:800 10px/1.15 Manrope;text-transform:uppercase;letter-spacing:.8px;color:#1a5c5d}.wave-reading b{font-size:24px!important;color:#08746e!important}.wave-limit{color:#08716b!important;font-weight:800!important}.wave-limit input{border-color:#83bdb5!important;background:#eaf6f2!important}@media(max-width:900px){.warranty-grid,.weather-grid{grid-template-columns:1fr}}@media(max-width:540px){.compact-window .window-content{align-items:flex-start;flex-direction:column;gap:2px}.window-rules{width:100%}}
+      .profile-row{grid-template-columns:1.1fr .65fr .72fr 1fr 1fr}.profile-row input{width:47px}.effective small+small{margin-top:-2px}@media(max-width:540px){.profile-row{grid-template-columns:1.05fr .62fr .72fr 1fr 1fr;padding:6px 4px}.profile-row input{width:35px}.profile-row small{font-size:8px;margin-left:1px}}
+      .current-factor{display:flex;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid #517174;color:#a8c9c2;font:10px 'DM Mono';letter-spacing:.45px}.current-factor input{display:none}.current-factor i{width:28px;height:16px;background:#72938f;border-radius:20px;margin-left:auto;position:relative}.current-factor i:after{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s}.current-factor input:checked+i{background:#55b69e}.current-factor input:checked+i:after{transform:translateX(12px)}
+      .fuel-detection{margin:0 0 8px;border-radius:4px;padding:8px 10px;font-size:10px;font-weight:700}.fuel-detection.warning{background:#fbebda;color:#975c20}.fuel-detection.warning:before{content:'!';display:inline-grid;place-items:center;width:14px;height:14px;margin-right:6px;border-radius:50%;background:#d38335;color:#fff}.fuel-detection.info{background:#e2f1ed;color:#286b64}.fuel-detection.info:before{content:'✓';display:inline-grid;place-items:center;width:14px;height:14px;margin-right:6px;border-radius:50%;background:#52a894;color:#fff}
+      .secondary-wave-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:10px}.secondary-wave-grid label{position:relative;display:block;color:#4a7171;font-size:10px;font-weight:800}.secondary-wave-grid input{width:100%;font:600 12px Manrope;color:#204648;background:#f4f8f7;border:1px solid #dce6e4;padding:8px;margin-top:6px;border-radius:3px;outline:none}.secondary-wave-grid input:disabled{background:#f7f8f8;color:#abb8b7;border-color:#e6eceb}.secondary-wave-grid span{position:absolute;right:8px;bottom:9px;font:10px 'DM Mono';color:#708685}@media(max-width:540px){.secondary-wave-grid{grid-template-columns:1fr}}
+      .profile-table.no-power .profile-row{grid-template-columns:1.25fr .78fr 1fr 1fr}.profile-table.no-power .profile-row>*:nth-child(2){display:none}
+      .warranty-grid{grid-template-columns:1fr}.integrated-time{margin-top:14px;padding:13px;background:#193f42;border-radius:5px}.integrated-time .window-content{display:flex;align-items:baseline;gap:12px}.integrated-time .window-number{margin:0;padding:0;border:0;display:flex;align-items:baseline}.integrated-time .window-number input{width:58px;background:transparent;border:0;color:#b8eadb;font:700 29px 'DM Mono';outline:0}.integrated-time .window-number span{font:11px 'DM Mono';color:#91aea9}.integrated-time .window-title{margin:0;color:#a6c4bf;font:9px 'DM Mono';text-transform:uppercase}.integrated-time .window-rules{margin-top:9px}.integrated-time .compact-rule-cards{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:9px}.integrated-time .compact-rule{padding:7px;font-size:8px}@media(max-width:640px){.integrated-time .compact-rule-cards{grid-template-columns:1fr}.integrated-time .window-content{align-items:flex-start;flex-direction:column;gap:2px}}
+      .switches{flex-wrap:wrap}.integrated-time{margin-top:12px;padding:11px 0 0;background:transparent;border-top:1px solid #e2eae8;border-radius:0;display:flex;align-items:center;gap:18px}.integrated-time .window-content{flex:1;align-items:baseline;flex-direction:row;gap:9px}.integrated-time .window-number input{color:#1f5c5c;font-size:24px;width:48px}.integrated-time .window-number span,.integrated-time .window-title{color:#627d7b}.integrated-time .window-rules{margin:0;display:flex;gap:7px}.integrated-time .window-rules span{background:#eff5f3;color:#5b7472;padding:6px 8px}.integrated-time .window-rules b{color:#23756e;font-size:11px}@media(max-width:640px){.integrated-time{align-items:flex-start;flex-direction:column;gap:8px}.integrated-time .window-content{align-items:baseline;flex-direction:row}.integrated-time .window-rules{width:100%}}
+    </style>
+    <style>
+      .notebook-help{margin:10px 0;color:#6f8180;font-size:10px;line-height:1.55}.performance-notes{display:block;width:100%;min-height:154px;resize:vertical;border:1px solid #d9e5e1;border-radius:5px;background:#fcfdfc;padding:13px;color:#254a4c;font:11px/1.65 'DM Mono',monospace;outline:none}.performance-notes:focus{border-color:#83bbb1;box-shadow:0 0 0 3px #ddf0eb}.notebook-footer{display:flex;justify-content:space-between;gap:15px;margin-top:8px;color:#758786;font:9px 'DM Mono'}
+    </style>
+    <style>
+      .weather-grid{grid-template-columns:1fr}.compact-window{justify-content:flex-start}.compact-rule-cards{display:grid;gap:7px;margin-top:11px}.compact-rule{display:flex;align-items:center;background:#285356;border-radius:4px;padding:8px;color:#c3d9d4;font:9px 'DM Mono';letter-spacing:.35px}.compact-rule input{display:none}.compact-rule i{width:28px;height:16px;background:#ce625a;border-radius:20px;margin-left:auto;position:relative}.compact-rule i:after{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s}.compact-rule input:checked+i{background:#55b69e}.compact-rule input:checked+i:after{transform:translateX(12px)}.switches i,.current-factor i,.rule-card i{background:#ce625a!important}.switches input:checked+i,.current-factor input:checked+i,.rule-card input:checked+i{background:#55b69e!important}
+    </style>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand"><span class="mark">⌁</span><span>MARITIME<br /><b>INTELLIGENCE</b></span></div>
+      <nav>
+        <a class="active" href="#overview"><span>▦</span> Assessment</a>
+        <a href="#clause"><span>≡</span> Clause Input</a>
+        <a href="#rules"><span>◈</span> Rule Library</a>
+        <a href="#report"><span>▤</span> Report Preview</a>
+      </nav>
+      <div class="sidebar-foot"><span class="status-dot"></span> Rule engine online<br /><small>v0.1 · Prototype</small></div>
+    </aside>
+
+    <main id="overview">
+      <header>
+        <div>
+          <p class="eyebrow">VOYAGE PERFORMANCE / CLAUSE REVIEW</p>
+          <h1>CP Performance<br /><em>Clause Analyzer</em></h1>
+        </div>
+        <div class="header-actions"><span class="case-id">CASE · CP-2026-0810</span><button class="outline" id="resetBtn">Reset defaults</button><button class="primary" id="reportBtn">Generate report <span>↗</span></button></div>
+      </header>
+
+      <section class="summary-strip">
+        <div><span class="label">Assessment status</span><strong><i class="status-dot"></i> Ready for review</strong></div>
+        <div><span class="label">Applicable conditions</span><strong id="conditionCount">6 / 6 detected</strong></div>
+        <div><span class="label">Risk indicator</span><strong class="amber">Medium <small>· wording check</small></strong></div>
+        <div class="progress-wrap"><span class="label">Clause completeness</span><div class="progress"><b></b></div><small>82%</small></div>
+      </section>
+
+      <section class="clause-input" aria-labelledby="clauseInputTitle">
+        <div class="clause-input-copy">
+          <p class="eyebrow">SOURCE DOCUMENT / CP CLAUSE</p>
+          <h2 id="clauseInputTitle">Paste the performance clause</h2>
+          <p>粘贴英文 CP 性能条款。原型将识别速度、油耗、ABT、连续时间及气象限制，并同步更新下方分析面板。</p>
+          <div class="detect-list"><span>Speed</span><span>Consumption</span><span>ABT</span><span>Weather</span></div>
+        </div>
+        <div class="clause-editor">
+          <textarea id="clauseText" spellcheck="false" aria-label="CP clause input">Vessel is warranted to perform 10.5 knots on a consumption of 20.0 MT per day in good weather, about 0.5 knots and 5% more or less. Good weather means wind force not exceeding Beaufort scale 4, Douglas sea state 3 and significant wave height not exceeding 2.0 metres, for 24 consecutive hours. No adverse current and no extrapolation allowed.</textarea>
+          <div class="editor-footer"><small id="parseStatus">Sample clause loaded · ready to parse</small><button class="primary" id="parseBtn">Parse clause <span>↗</span></button></div>
+        </div>
+      </section>
+
+      <section class="grid warranty-grid" id="clause">
+        <article class="card warranty-card">
+          <div class="card-heading"><div><p class="eyebrow">01 / CONTRACTED PERFORMANCE</p><h2>CP Warranty &amp; ABT</h2></div><span class="tag">CORE TERM</span></div>
+          <div class="profile-head"><span class="label">Performance clause notebook</span><span class="profile-note">Manual review · no automatic figures</span></div>
+          <p class="notebook-help">系统仅粘贴检测到的速度、油耗、燃油和装载状态原文；不会自动计算或填充性能保证数值。</p>
+          <textarea id="performanceNotes" class="performance-notes" spellcheck="false" aria-label="Performance clause notebook" placeholder="No speed / consumption terms detected."></textarea>
+          <div class="notebook-footer"><span id="performanceNoteStatus">Awaiting clause analysis</span><span>Editable notes</span></div>
+        </article>
+
+      </section>
+
+      <section class="grid weather-grid">
+        <article class="card weather-card">
+          <div class="card-heading"><div><p class="eyebrow">03 / GOOD WEATHER DEFINITION</p><h2>Wind, Sea &amp; Wave Limits</h2></div><span class="tag blue">DSS BASIS</span></div>
+          <div class="limit-grid"><label>Wind scale<select id="wind"><option value="3">BF 3</option><option value="4" selected>BF 4</option><option value="5">BF 5</option><option value="6">BF 6</option></select></label><label>Sea state<select id="sea"><option value="2">DSS 2</option><option value="3" selected>DSS 3</option><option value="4">DSS 4</option></select></label><label class="wave-limit">Significant wave height<input id="wave" type="number" value="2.0" step="0.25" /><span>m</span></label></div>
+          <div class="secondary-wave-grid"><label>Swell height<input id="swellHeight" type="number" value="2.0" step="0.25" disabled /><span>m</span></label><label>Wind wave height<input id="windWaveHeight" type="number" value="1.0" step="0.25" disabled /><span>m</span></label></div>
+          <div class="switches"><label>Significant wave<input id="sigWaveSwitch" type="checkbox" checked /><i></i></label><label>Swell limit<input id="swellSwitch" type="checkbox" /><i></i></label><label>Wind-wave limit<input id="windWaveSwitch" type="checkbox" /><i></i></label><label>NO NET CURRENT<input id="noCurrentFactor" type="checkbox" /><i></i></label><label>No adverse current<input id="current" type="checkbox" checked /><i></i></label><label>No extrapolation<input id="extrapolation" type="checkbox" checked /><i></i></label></div>
+          <div class="integrated-time">
+            <div class="window-content"><div class="window-number"><input id="hours" type="number" value="1" /><span>hours</span></div><p class="window-title">continuous compliant period</p></div>
+            <div class="window-rules"><span><b id="complianceValue">50%</b> compliant observations</span><span><b id="windowValue">1h</b> continuous window</span></div>
+          </div>
+        </article>
+
+      </section>
+
+      <section class="review-section" id="report">
+        <div class="section-title"><div><p class="eyebrow">05 / RULE ENGINE OUTPUT</p><h2>Clause Interpretation Snapshot</h2></div><button class="text-button" id="copyBtn">Copy findings</button></div>
+        <div class="findings">
+          <div class="finding good"><span>01</span><p><b>Performance terms retained for manual review.</b> Detected speed and fuel wording is copied to the performance clause notebook without automatic calculation.</p></div>
+          <div class="finding good"><span>02</span><p><b>Good weather test is defined.</b> A continuous <mark id="findingHours">24-hour</mark> period within BF <mark id="findingWind">4</mark>, DSS <mark id="findingSea">3</mark> and 2.0m significant wave height is required.</p></div>
+          <div class="finding warn"><span>03</span><p><b>Review wording before final claim.</b> “No adverse current” needs a source-data / threshold definition for evidentiary certainty.</p></div>
+        </div>
+      </section>
+    </main>
+    <div class="toast" id="toast">Findings copied to clipboard</div>
+    <script src="app.js"></script>
+  </body>
+</html>
