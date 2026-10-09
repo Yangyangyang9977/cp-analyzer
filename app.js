@@ -9,6 +9,13 @@ function findNumber(patterns, text) {
   for (const pattern of patterns) { const match = text.match(pattern); if (match) return Number(match[1]); }
   return null;
 }
+function findHeightAround(text, keywordSource) {
+  const unitNumber = '(?:max(?:imum)?\\s*)?(\\d+(?:\\.\\d+)?)\\s*(?:m|met(?:er|re)s?)';
+  const afterKeyword = new RegExp(`${keywordSource}[\\s\\S]{0,60}?${unitNumber}`, 'i');
+  const beforeKeyword = new RegExp(`${unitNumber}[\\s\\S]{0,60}?${keywordSource}`, 'i');
+  const match = text.match(afterKeyword) ?? text.match(beforeKeyword);
+  return match ? Number(match[1]) : null;
+}
 function matchesNoCurrentFactor(text) {
   const explicit = [/no\s+current\s+factor/, /net\s+current\s+factor\s+(?:is\s+)?not\s+to\s+apply/, /no\s+averaging\s+currents?\s+to\s+calculate\s+daily\s+cf/, /steaming\s+days?[\s\S]{0,180}adverse\s+currents?[\s\S]{0,180}not\s+to\s+be\s+included/].some((pattern) => pattern.test(text));
   const noonToNoonDay = /good\s+weather\s+days?/.test(text) && /noon\s+to\s+noon/.test(text) && /(?:all\s+parts?|all\s+(?:6\s*[- ]?hourly\s+)?periods?|6\s*[- ]?hourly\s+periods?)[\s\S]{0,100}(?:comply|compliance|criteria)/.test(text);
@@ -62,14 +69,14 @@ function parseClause() {
   const allTimeGoodWeather = /all\s+time\s+from\s+noon\s+to\s+noon\s+has\s+to\s+be\s+in\s+good\s+weather(?:\s+as\s+defined\s+above)?/.test(text);
   updateTimeWindow(hours ?? 1, hours !== null || allTimeGoodWeather);
 
-  const wind = findNumber([/(?:beaufort|beafort|bf|wind(?:\s*force|\s*scale)?)\s*(?:scale)?\s*(\d)/], text);
+  const wind = findNumber([/(?:beaufort|beafort|bf|wind(?:\s*force|\s*scale)?)\s*(?:scale|sc)?\s*(\d)/], text);
   const sea = findNumber([/(?:douglas\s*)?(?:sea\s*state|dss)\s*(\d)/], text);
-  const significantHeight = findNumber([/(?:significant\s*(?:wave\s*)?height|sig\.?\s*(?:wave\s*)?height)\s*(?:not\s*(?:exceeding|over)|<=?|of|max(?:imum)?\s*)?\s*(\d+(?:\.\d+)?)/], text);
-  const swellHeight = findNumber([/swell(?:\s*wave)?\s*height\s*(?:not\s*(?:exceeding|over)|<=?|of|max(?:imum)?\s*)?\s*(\d+(?:\.\d+)?)/, /swell\s*(?:not\s*(?:exceeding|over)|<=?)\s*(\d+(?:\.\d+)?)/], text);
-  const windWaveHeight = findNumber([/wind[\s-]*waves?\s*height\s*(?:not\s*(?:exceeding|over)|<=?|of|max(?:imum)?\s*)?\s*(\d+(?:\.\d+)?)/, /wind[\s-]*waves?\s*(?:not\s*(?:exceeding|over)|<=?)\s*(\d+(?:\.\d+)?)/], text);
-  const genericHeight = findNumber([/(?:wave\s*)?heights?\s*(?:not\s*(?:exceeding|over)|<=?|of|max(?:imum)?\s*)?\s*(\d+(?:\.\d+)?)\s*(?:m|met(?:er|re)s?)/], text);
+  const significantHeight = findHeightAround(text, '(?:significant\\s*(?:wave\\s*)?height|sig\\.?\\s*(?:wave\\s*)?height)');
+  const swellHeight = findHeightAround(text, 'swell(?:\\s*wave)?\\s*height');
+  const windWaveHeight = findHeightAround(text, 'wind[\\s-]*waves?\\s*height');
+  const genericHeight = findHeightAround(text, '(?:wave\\s*)?heights?');
   const combinedWaveSwell = /combined\s+(?:waves?\s*(?:\+|and)\s*swell|swell\s*(?:\+|and)\s*waves?)/.test(text);
-  const combinedHeight = combinedWaveSwell ? findNumber([/(?:max(?:imum)?|under|not\s*(?:exceeding|over))\s*(\d+(?:\.\d+)?)\s*(?:m|met(?:er|re)s?)[\s\S]{0,100}combined\s+(?:waves?\s*(?:\+|and)\s*swell|swell\s*(?:\+|and)\s*waves?)/, /combined\s+(?:waves?\s*(?:\+|and)\s*swell|swell\s*(?:\+|and)\s*waves?)[\s\S]{0,100}(?:max(?:imum)?|under|not\s*(?:exceeding|over))\s*(\d+(?:\.\d+)?)\s*(?:m|met(?:er|re)s?)/], text) : null;
+  const combinedHeight = combinedWaveSwell ? findHeightAround(text, 'combined\\s+(?:waves?\\s*(?:\\+|and)\\s*swell|swell\\s*(?:\\+|and)\\s*waves?)') : null;
   if (wind !== null) $('wind').value = wind;
   if (sea !== null) $('sea').value = sea;
   const significant = significantHeight !== null || /(?:significant|sig\.?)\s*(?:wave\s*)?height/.test(text) || combinedWaveSwell;
