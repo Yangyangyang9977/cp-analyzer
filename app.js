@@ -9,6 +9,18 @@ function findNumber(patterns, text) {
   for (const pattern of patterns) { const match = text.match(pattern); if (match) return Number(match[1]); }
   return null;
 }
+function findContinuousHours(text) {
+  // Keep the number tied to an hours unit; accept the continuity keyword on either side.
+  return findNumber([
+    /(\d+(?:\.\d+)?)\s*(?:consecutive|continuous)\s*(?:hours?|hrs?)\b/,
+    /(?:consecutive|continuous)\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/,
+    /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b\s*(?:of\s+)?(?:consecutive|continuous)\b/,
+    /(?:consecutive|continuous)\b[^.;!?]{0,40}?(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/,
+    /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b[^.;!?]{0,40}?\b(?:consecutive|continuous)\b/,
+    /prevail[\s\S]{0,160}?(?:over\s+)?(?:a\s+)?period\s+(?:of\s+)?(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/,
+    /prevail[\s\S]{0,160}?(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/
+  ], text);
+}
 function findHeightAround(text, keywordSource) {
   const unitNumber = '(?:max(?:imum)?\\s*)?(\\d+(?:\\.\\d+)?)\\s*(?:m|met(?:er|re)s?)';
   const afterKeyword = new RegExp(`${keywordSource}[\\s\\S]{0,60}?${unitNumber}`, 'i');
@@ -36,8 +48,14 @@ function setWaveMode(mode) {
   $('sigWaveSwitch').checked = significant;
   $('swellSwitch').checked = !significant;
   $('windWaveSwitch').checked = !significant;
-  $('swellHeight').disabled = significant;
-  $('windWaveHeight').disabled = significant;
+  setWaveHeightState('wave', significant);
+  setWaveHeightState('swellHeight', !significant);
+  setWaveHeightState('windWaveHeight', !significant);
+}
+function setWaveHeightState(id, active) {
+  const input = $(id);
+  input.disabled = !active;
+  input.closest('label').classList.toggle('inactive', !active);
 }
 function updateWaveControls(source) {
   if (source === 'significant') setWaveMode($('sigWaveSwitch').checked ? 'significant' : 'component');
@@ -51,21 +69,39 @@ function extractPerformanceNotes(rawText) {
   const sentences = rawText.split(/(?:\r?\n+|;)+|(?<=[.!?])\s+(?=[A-Z“‘'])/).map((sentence) => sentence.trim()).filter(Boolean);
   return sentences.filter((sentence) => performanceTerms.test(sentence) && !excludedContext.test(sentence) && !nonWarrantyContext.test(sentence)).join('\n');
 }
+function parseAbout(rawText) {
+  const text = normalizeClause(rawText);
+  const clauses = text.split(/[;!?]|\.(?!\d)/).filter((part) => /\b(?:abt|about|tolerance|tollerance)\b/.test(part));
+  let speed = null;
+  let fuel = null;
+  for (const clause of clauses) {
+    const both = clause.match(/\bboth\s*(\d+(?:\.\d+)?)\s*%/);
+    if (both) { speed = `${Number(both[1])}%`; fuel = `${Number(both[1])}%`; continue; }
+    const labels = [...clause.matchAll(/\b(speed|spd|(?:fuel\s+|bunker\s+)?consumption)\b/g)];
+    for (const number of clause.matchAll(/(\d+(?:\.\d+)?)\s*(%|knots?|knts?|kts?)\b|(?:(\d+(?:\.\d+)?)\s*(%))/g)) {
+      const value = Number(number[1] ?? number[3]);
+      const unit = number[2] ?? number[4];
+      const nearest = labels.map((label) => ({ label, distance: Math.min(Math.abs(label.index - (number.index + number[0].length)), Math.abs(number.index - (label.index + label[0].length))) })).sort((a, b) => a.distance - b.distance)[0];
+      if (!nearest || nearest.distance > 80) continue;
+      if (/speed|spd/.test(nearest.label[0])) speed = `${value}${unit === '%' ? '%' : ' kt'}`;
+      else if (unit === '%') fuel = `${value}%`;
+    }
+  }
+  $('aboutSpeed').textContent = speed ?? '0.5 kt';
+  $('aboutFuel').textContent = fuel ?? '5%';
+  $('aboutStatus').textContent = speed || fuel ? `速度：${speed ? '条款提取' : '默认'} · 油耗：${fuel ? '条款提取' : '默认'}` : '默认容差';
+}
 function updateDashboard() {
-  $('findingHours').textContent = `${Number($('hours').value) || 1}-hour`;
-  $('findingWind').textContent = $('wind').value;
-  $('findingSea').textContent = $('sea').value;
-  const detected = 4 + Number($('current').checked) + Number($('extrapolation').checked) + Number($('noCurrentFactor').checked);
-  $('conditionCount').textContent = `${detected} conditions detected`;
 }
 function parseClause() {
   const rawText = $('clauseText').value;
   const text = normalizeClause(rawText);
+  parseAbout(rawText);
   const notes = extractPerformanceNotes(rawText);
   $('performanceNotes').value = notes;
   $('performanceNoteStatus').textContent = notes ? 'Relevant clause text copied for manual review' : 'No speed / consumption fields detected';
 
-  const hours = findNumber([/(\d+(?:\.\d+)?)\s*(?:consecutive|continuous)\s*hours?/, /(?:consecutive|continuous)\s*(\d+(?:\.\d+)?)\s*hours?/, /prevail[\s\S]{0,160}?(?:over\s+)?(?:a\s+)?period\s+(?:of\s+)?(\d+(?:\.\d+)?)\s*hours?/, /prevail[\s\S]{0,160}?(\d+(?:\.\d+)?)\s*hours?/], text);
+  const hours = findContinuousHours(text);
   const allTimeGoodWeather = /all\s+time\s+from\s+noon\s+to\s+noon\s+has\s+to\s+be\s+in\s+good\s+weather(?:\s+as\s+defined\s+above)?/.test(text);
   updateTimeWindow(hours ?? 1, hours !== null || allTimeGoodWeather);
 
@@ -104,9 +140,8 @@ $('sigWaveSwitch').addEventListener('change', () => updateWaveControls('signific
 [$('swellSwitch'), $('windWaveSwitch')].forEach((el) => el.addEventListener('change', () => updateWaveControls('component')));
 $('clauseText').addEventListener('input', () => { const text = normalizeClause($('clauseText').value); $('noCurrentFactor').checked = matchesNoCurrentFactor(text); $('extrapolation').checked = matchesNoExtrapolation(text); updateDashboard(); });
 $('resetBtn').addEventListener('click', () => { document.querySelectorAll('input').forEach((input) => { if (input.type === 'checkbox') input.checked = input.defaultChecked; else input.value = input.defaultValue; }); document.querySelectorAll('select').forEach((select) => select.selectedIndex = [...select.options].findIndex((option) => option.defaultSelected)); $('performanceNotes').value = ''; $('performanceNoteStatus').textContent = 'Awaiting clause analysis'; updateTimeWindow(1, false); updateWaveControls(); updateDashboard(); });
-$('reportBtn').addEventListener('click', () => document.getElementById('report').scrollIntoView({ behavior: 'smooth' }));
 $('parseBtn').addEventListener('click', parseClause);
-$('copyBtn').addEventListener('click', async () => { const text = [...document.querySelectorAll('.finding p')].map((item) => item.innerText).join('\n\n'); try { await navigator.clipboard.writeText(text); $('toast').classList.add('show'); setTimeout(() => $('toast').classList.remove('show'), 2200); } catch { } });
+$('resetBtn').addEventListener('click', () => parseAbout(''));
 updateWaveControls();
 updateTimeWindow(1, false);
 updateDashboard();
