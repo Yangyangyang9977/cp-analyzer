@@ -35,7 +35,15 @@ function matchesNoCurrentFactor(text) {
   return explicit || noonToNoonDay || continuousPeriod;
 }
 function matchesNoExtrapolation(text) {
-  return /no\s+extrapolation(?:s)?|extrapolation(?:s)?\s+(?:is\s+)?not\s+(?:to\s+be\s+)?allowed|extrapolation(?:s)?\s+(?:are\s+)?prohibited|didymi\s+principle\s+(?:is\s+)?not\s+to\s+apply/.test(text);
+  // Line wrapping does not end a clause; sentence/semicolon boundaries do.
+  const segments = text.split(/[;.!?]+/);
+  const invalidClause = segments.some((segment) =>
+    /\bextrapolations?\b/i.test(segment) &&
+    /\bweather[\s-]+conditions?\b/i.test(segment) &&
+    /\b(?:described|defined|specified|stated|set\s+out)\s+above\b/i.test(segment)
+  );
+  if (invalidClause) return false;
+  return /\bextrapolations?\b|\bdidymi\s+principle\s+(?:is\s+)?not\s+to\s+apply\b/i.test(text);
 }
 function updateTimeWindow(hours, fullyCompliant) {
   const value = Number(hours) || 1;
@@ -91,12 +99,25 @@ function parseAbout(rawText) {
   $('aboutFuel').textContent = fuel ?? '5%';
   $('aboutStatus').textContent = speed || fuel ? `速度：${speed ? '条款提取' : '默认'} · 油耗：${fuel ? '条款提取' : '默认'}` : '默认容差';
 }
+function updateWog(rawText) {
+  const rules = [
+    { pattern: /\bwog\b/i, label: 'WOG' },
+    { pattern: /\bwithout\s+guarantee\b/i, label: 'WITHOUT GUARANTEE' },
+    { pattern: /\bfor\s+(?:reference|refference)\s+only\b/i, label: 'FOR REFERENCE ONLY' },
+    { pattern: /\bgood\s+faith\b/i, label: 'GOOD FAITH' }
+  ];
+  const matched = rules.filter((rule) => rule.pattern.test(rawText));
+  $('wogCard').classList.toggle('active', matched.length > 0);
+  $('wogStatus').textContent = matched.length ? '激活' : '正常';
+  $('wogReason').textContent = matched.length ? matched.map((rule) => rule.label).join(' · ') : '未检测到相关表述';
+}
 function updateDashboard() {
 }
 function parseClause() {
   const rawText = $('clauseText').value;
   const text = normalizeClause(rawText);
   parseAbout(rawText);
+  updateWog(rawText);
   const notes = extractPerformanceNotes(rawText);
   $('performanceNotes').value = notes;
   $('performanceNoteStatus').textContent = notes ? 'Relevant clause text copied for manual review' : 'No speed / consumption fields detected';
@@ -142,7 +163,8 @@ $('sigWaveSwitch').addEventListener('change', () => updateWaveControls('signific
 $('clauseText').addEventListener('input', () => { const text = normalizeClause($('clauseText').value); $('noCurrentFactor').checked = matchesNoCurrentFactor(text); $('extrapolation').checked = matchesNoExtrapolation(text); updateDashboard(); });
 $('resetBtn').addEventListener('click', () => { document.querySelectorAll('input').forEach((input) => { if (input.type === 'checkbox') input.checked = input.defaultChecked; else input.value = input.defaultValue; }); document.querySelectorAll('select').forEach((select) => select.selectedIndex = [...select.options].findIndex((option) => option.defaultSelected)); $('performanceNotes').value = ''; $('performanceNoteStatus').textContent = 'Awaiting clause analysis'; updateTimeWindow(1, false); updateWaveControls(); updateDashboard(); });
 $('parseBtn').addEventListener('click', parseClause);
-$('resetBtn').addEventListener('click', () => parseAbout(''));
+$('resetBtn').addEventListener('click', () => { parseAbout(''); updateWog(''); });
+$('clauseText').addEventListener('input', () => updateWog($('clauseText').value));
 updateWaveControls();
 updateTimeWindow(1, false);
 updateDashboard();

@@ -32,6 +32,12 @@
     <style>
       .integrated-time .window-rules{gap:12px}.integrated-time .window-rules span{min-width:150px;padding:12px 16px;text-align:center;font-size:11px;line-height:1.4}.integrated-time .window-rules b{display:block;font-size:30px;font-weight:800;line-height:1.15;margin-bottom:5px;color:#075f59}@media(max-width:640px){.integrated-time .window-rules span{min-width:0;flex:1;padding:12px 8px}}
     </style>
+    <style>
+      .weather-card .wave-limit,.weather-card .secondary-wave-grid label{font-size:15px;font-weight:800}.weather-card .wave-limit input,.weather-card .secondary-wave-grid input{font-size:23px;font-weight:800;padding:11px 32px 11px 12px}.weather-card .wave-limit span,.weather-card .secondary-wave-grid span{font-size:14px;bottom:15px;right:12px}.weather-card .switches{gap:12px 18px;align-items:center;flex-direction:row;flex-wrap:wrap}.weather-card .switches label{font-size:14px;font-weight:800;gap:10px;padding:9px 10px;background:#f0f5f3;border-radius:5px;white-space:nowrap}.weather-card .switches i{width:38px;height:22px;flex-shrink:0;transform:none;margin-left:0}.weather-card .switches i:after{width:16px;height:16px;top:3px;left:3px}.weather-card .switches input:checked+i:after{transform:translateX(16px)}
+    </style>
+    <style>
+      .weather-card .wave-limit{font-size:11px;font-weight:800}.weather-card .secondary-wave-grid label{font-size:10px;font-weight:800}.weather-card .wave-limit input,.weather-card .secondary-wave-grid input{font-size:12px;font-weight:600;padding:8px}.weather-card .wave-limit input{padding-right:25px}.weather-card .wave-limit span,.weather-card .secondary-wave-grid span{font-size:10px;bottom:9px;right:8px}
+    </style>
   </head>
   <body>
     <aside class="sidebar">
@@ -78,18 +84,24 @@
 
       </section>
 
+      <div class="allowance-row">
       <section class="card about-card" aria-label="ABOUT allowances">
         <h2>ABOUT</h2>
         <div class="about-values"><div><span>Speed / 速度</span><strong id="aboutSpeed">0.5 kt</strong></div><div><span>Fuel consumption / 油耗</span><strong id="aboutFuel">5%</strong></div></div>
         <small id="aboutStatus">默认容差</small>
       </section>
+      <section id="wogCard" class="card wog-card" aria-label="WOG status" aria-live="polite">
+        <h2>WOG</h2><strong id="wogStatus">正常</strong><small id="wogReason">未检测到相关表述</small>
+      </section>
+      </div>
+      <style>.allowance-row{display:grid;grid-template-columns:minmax(0,3fr) minmax(180px,1fr);gap:22px;margin-bottom:22px}.allowance-row .about-card{margin-bottom:0}.wog-card{background:#f0f2f2;border-color:#dce1e0;color:#788481;display:flex;flex-direction:column;justify-content:center;gap:9px}.wog-card h2{font-size:15px;margin:0}.wog-card strong{font-size:23px}.wog-card small{font-size:11px;line-height:1.5}.wog-card.active{background:#fff0ee;border-color:#e49b94;color:#b83229}@media(max-width:640px){.allowance-row{grid-template-columns:minmax(0,2fr) minmax(110px,1fr);gap:10px}.wog-card{padding:15px}.about-values{grid-template-columns:1fr!important;gap:8px!important}}</style>
       <style>.about-card{margin-bottom:22px}.about-card h2{font-size:15px;margin:0 0 12px}.about-values{display:grid;grid-template-columns:1fr 1fr;gap:16px}.about-values>div{background:#eff6f4;border-radius:5px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}.about-values span{font-size:11px;color:#5f7775}.about-values strong{font:700 22px 'DM Mono',monospace;color:#176b66}.about-card>small{display:block;margin-top:8px;color:#718583;font-size:10px}</style>
       <section class="grid weather-grid">
         <article class="card weather-card">
           <div class="card-heading"><div><p class="eyebrow">03 / GOOD WEATHER DEFINITION</p><h2>Wind, Sea &amp; Wave Limits</h2></div><span class="tag blue">DSS BASIS</span></div>
           <div class="limit-grid"><label>Wind scale<select id="wind"><option value="3">BF 3</option><option value="4" selected>BF 4</option><option value="5">BF 5</option><option value="6">BF 6</option></select></label><label>Sea state<select id="sea"><option value="2">DSS 2</option><option value="3" selected>DSS 3</option><option value="4">DSS 4</option></select></label><label class="wave-limit">Significant wave height<input id="wave" type="number" value="2.0" step="0.25" /><span>m</span></label></div>
           <div class="secondary-wave-grid"><label>Swell height<input id="swellHeight" type="number" value="2.0" step="0.25" disabled /><span>m</span></label><label>Wind wave height<input id="windWaveHeight" type="number" value="1.0" step="0.25" disabled /><span>m</span></label></div>
-          <div class="switches"><label>Significant wave<input id="sigWaveSwitch" type="checkbox" checked /><i></i></label><label>Swell limit<input id="swellSwitch" type="checkbox" /><i></i></label><label>Wind-wave limit<input id="windWaveSwitch" type="checkbox" /><i></i></label><label>NO NET CURRENT<input id="noCurrentFactor" type="checkbox" /><i></i></label><label>No adverse current<input id="current" type="checkbox" checked /><i></i></label><label>No extrapolation<input id="extrapolation" type="checkbox" checked /><i></i></label></div>
+          <div class="switches"><label>Significant wave<input id="sigWaveSwitch" type="checkbox" checked /><i></i></label><label>Swell limit<input id="swellSwitch" type="checkbox" /><i></i></label><label>Wind-wave limit<input id="windWaveSwitch" type="checkbox" /><i></i></label><label>NO NET CURRENT<input id="noCurrentFactor" type="checkbox" /><i></i></label><label>No adverse current<input id="current" type="checkbox" checked /><i></i></label><label>No extrapolation<input id="extrapolation" type="checkbox" /><i></i></label></div>
           <div class="integrated-time">
             <div class="window-content"><div class="window-number"><input id="hours" type="number" value="1" /><span>hours</span></div><p class="window-title">continuous compliant period</p></div>
             <div class="window-rules"><span><b id="complianceValue">50%</b> compliant observations</span><span><b id="windowValue">1h</b> continuous window</span></div>
