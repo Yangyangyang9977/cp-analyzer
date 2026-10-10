@@ -77,7 +77,7 @@ function parseAbout(rawText) {
   for (const clause of clauses) {
     const both = clause.match(/\bboth\s*(\d+(?:\.\d+)?)\s*%/);
     if (both) { speed = `${Number(both[1])}%`; fuel = `${Number(both[1])}%`; continue; }
-    const labels = [...clause.matchAll(/\b(speed|spd|(?:fuel\s+|bunker\s+)?consumption)\b/g)];
+    const labels = [...clause.matchAll(/\b(speed|spd|(?:(?:fuel|bunkers?)\s+)?(?:over[\s-]*)?consumption|bunkers?)\b/g)];
     for (const number of clause.matchAll(/(\d+(?:\.\d+)?)\s*(%|knots?|knts?|kts?)\b|(?:(\d+(?:\.\d+)?)\s*(%))/g)) {
       const value = Number(number[1] ?? number[3]);
       const unit = number[2] ?? number[4];
@@ -111,8 +111,9 @@ function parseClause() {
   const swellHeight = findHeightAround(text, 'swell(?:\\s*wave)?\\s*height');
   const windWaveHeight = findHeightAround(text, 'wind[\\s-]*waves?\\s*height');
   const genericHeight = findHeightAround(text, '(?:wave\\s*)?heights?');
-  const combinedWaveSwell = /combined\s+(?:waves?\s*(?:\+|and)\s*swell|swell\s*(?:\+|and)\s*waves?)/.test(text);
-  const combinedHeight = combinedWaveSwell ? findHeightAround(text, 'combined\\s+(?:waves?\\s*(?:\\+|and)\\s*swell|swell\\s*(?:\\+|and)\\s*waves?)') : null;
+  const combinedWaveKeywords = '(?:combined\\s+|(?:the\\s+)?sum\\s+of\\s+)(?:waves?\\s*(?:\\+|and)\\s*swell|swell\\s*(?:\\+|and)\\s*waves?)';
+  const combinedWaveSwell = new RegExp(combinedWaveKeywords, 'i').test(text);
+  const combinedHeight = combinedWaveSwell ? findHeightAround(text, combinedWaveKeywords) : null;
   if (wind !== null) $('wind').value = wind;
   if (sea !== null) $('sea').value = sea;
   const significant = significantHeight !== null || /(?:significant|sig\.?)\s*(?:wave\s*)?height/.test(text) || combinedWaveSwell;
