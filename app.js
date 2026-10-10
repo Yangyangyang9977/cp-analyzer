@@ -132,7 +132,7 @@ function parseClause() {
   const swellHeight = findHeightAround(text, 'swell(?:\\s*wave)?\\s*height');
   const windWaveHeight = findHeightAround(text, 'wind[\\s-]*waves?\\s*height');
   const genericHeight = findHeightAround(text, '(?:wave\\s*)?heights?');
-  const combinedWaveKeywords = '(?:combined\\s+|(?:the\\s+)?sum\\s+of\\s+)(?:waves?\\s*(?:\\+|and)\\s*swell|swell\\s*(?:\\+|and)\\s*waves?)';
+  const combinedWaveKeywords = '(?:combined\\s+|(?:the\\s+)?(?:sum|combination)\\s+of\\s+)(?:(?:waves?|sea)\\s*(?:\\+|and)\\s*swell|swell\\s*(?:\\+|and)\\s*(?:waves?|sea))';
   const combinedWaveSwell = new RegExp(combinedWaveKeywords, 'i').test(text);
   const combinedHeight = combinedWaveSwell ? findHeightAround(text, combinedWaveKeywords) : null;
   if (wind !== null) $('wind').value = wind;
