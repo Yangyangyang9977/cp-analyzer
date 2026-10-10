@@ -108,8 +108,6 @@ function updateWog(rawText) {
   ];
   const matched = rules.filter((rule) => rule.pattern.test(rawText));
   $('wogCard').classList.toggle('active', matched.length > 0);
-  $('wogStatus').textContent = matched.length ? '激活' : '正常';
-  $('wogReason').textContent = matched.length ? matched.map((rule) => rule.label).join(' · ') : '未检测到相关表述';
 }
 function updateDashboard() {
 }
