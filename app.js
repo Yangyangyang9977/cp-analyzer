@@ -3,13 +3,21 @@ const fields = ['hours', 'wind', 'sea', 'wave', 'swellHeight', 'windWaveHeight']
 
 function normalizeClause(text) {
   const numberWords = { one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10', eleven: '11', twelve: '12' };
-  return text.replace(/[\u2018\u2019\u201c\u201d]/g, '"').replace(/[\u00a0\u200b]/g, ' ').replace(/,/g, ' ').toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/g, (word) => numberWords[word]);
+  return text.replace(/[\u2018\u2019\u201c\u201d]/g, '"').replace(/[\u00a0\u200b]/g, ' ').replace(/(\d),(\d)/g, '$1.$2').replace(/,/g, ' ').toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/g, (word) => numberWords[word]);
 }
 function findNumber(patterns, text) {
   for (const pattern of patterns) { const match = text.match(pattern); if (match) return Number(match[1]); }
   return null;
 }
 function findContinuousHours(text) {
+  // Handle spelled-out numbers (including words already normalized to digits)
+  // and parenthetical numerals such as "twenty four (24) consecutive hours".
+  const tens = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+  const units = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
+  const timeText = text.toLowerCase()
+    .replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[\s-]+(one|two|three|four|five|six|seven|eight|nine|[1-9])\b)?/g,
+      (_, ten, unit) => String(tens[ten] + (units[unit] ?? Number(unit ?? 0))))
+    .replace(/(?:\b\d+\s*)?[(（]\s*(\d+(?:\.\d+)?)\s*[)）]/g, '$1');
   // Keep the number tied to an hours unit; accept the continuity keyword on either side.
   return findNumber([
     /(\d+(?:\.\d+)?)\s*(?:consecutive|continuous)\s*(?:hours?|hrs?)\b/,
@@ -19,7 +27,7 @@ function findContinuousHours(text) {
     /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b[^.;!?]{0,40}?\b(?:consecutive|continuous)\b/,
     /prevail[\s\S]{0,160}?(?:over\s+)?(?:a\s+)?period\s+(?:of\s+)?(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/,
     /prevail[\s\S]{0,160}?(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/
-  ], text);
+  ], timeText);
 }
 function findHeightAround(text, keywordSource) {
   const unitNumber = '(?:max(?:imum)?\\s*)?(\\d+(?:\\.\\d+)?)\\s*(?:m|met(?:er|re)s?)';
@@ -29,6 +37,7 @@ function findHeightAround(text, keywordSource) {
   return match ? Number(match[1]) : null;
 }
 function matchesNoCurrentFactor(text) {
+  if (/\bno\s+average\s+current\s+factor\b/i.test(text)) return true;
   const explicit = [/no\s+current\s+factor/, /net\s+current\s+factor\s+(?:is\s+)?not\s+to\s+apply/, /no\s+averaging\s+currents?\s+to\s+calculate\s+daily\s+cf/, /steaming\s+days?[\s\S]{0,180}adverse\s+currents?[\s\S]{0,180}not\s+to\s+be\s+included/].some((pattern) => pattern.test(text));
   const noonToNoonDay = /good\s+weather\s+days?/.test(text) && /noon\s+to\s+noon/.test(text) && /(?:all\s+parts?|all\s+(?:6\s*[- ]?hourly\s+)?periods?|6\s*[- ]?hourly\s+periods?)[\s\S]{0,100}(?:comply|compliance|criteria)/.test(text);
   const continuousPeriod = /good\s+weather\s+period[\s\S]{0,180}\d+\s*hours?[\s\S]{0,100}noon\s+to\s+noon[\s\S]{0,180}(?:continuously|entire\s+period)[\s\S]{0,100}(?:criteria|comply)/.test(text);
@@ -43,7 +52,7 @@ function matchesNoExtrapolation(text) {
     /\b(?:described|defined|specified|stated|set\s+out)\s+above\b/i.test(segment)
   );
   if (invalidClause) return false;
-  return /\bextrapolations?\b|\bdidymi\s+principle\s+(?:is\s+)?not\s+to\s+apply\b/i.test(text);
+  return /\bextrapolations?\b|\b(?:didymi|didimy)\s+(?:principle|case(?:\s+calculations?)?)\s+(?:(?:is|are|shall|will)\s+)?not\s+(?:to\s+apply|(?:to\s+be\s+|be\s+)?applied)\b/i.test(text);
 }
 function updateTimeWindow(hours, fullyCompliant) {
   const value = Number(hours) || 1;
@@ -129,8 +138,10 @@ function parseClause() {
   const significantHeight = findHeightAround(text, '(?:significant\\s*(?:wave\\s*)?height|sig\\.?\\s*(?:wave\\s*)?height)');
   const swellHeight = findHeightAround(text, 'swell(?:\\s*wave)?\\s*height');
   const windWaveHeight = findHeightAround(text, 'wind[\\s-]*waves?\\s*height');
-  const genericHeight = findHeightAround(text, '(?:wave\\s*)?heights?');
-  const combinedWaveKeywords = '(?:combined\\s+|(?:the\\s+)?(?:sum|combination)\\s+of\\s+)(?:(?:waves?|sea)\\s*(?:\\+|and)\\s*swell|swell\\s*(?:\\+|and)\\s*(?:waves?|sea))';
+  // An explicit metre value in parentheses after DSS is a height, not a scale conversion.
+  const seaStateHeight = findNumber([/\b(?:douglas\s+sea\s+state|sea\s+state|dss)\s*\d+\s*\(\s*(?:max(?:imum)?\s*)?(\d+(?:\.\d+)?)\s*(?:metres?|meters?|m)\b\s*\)/], text);
+  const genericHeight = findHeightAround(text, '(?:wave\\s*)?heights?') ?? seaStateHeight;
+  const combinedWaveKeywords = '(?:combined\\s+|(?:the\\s+)?(?:sum|combination)\\s+of\\s+)(?:(?:waves?|sea)(?:\\s+heights?)?\\s*(?:\\+|and)\\s*swell(?:\\s+heights?)?|swell(?:\\s+heights?)?\\s*(?:\\+|and)\\s*(?:waves?|sea)(?:\\s+heights?)?)';
   const combinedWaveSwell = new RegExp(combinedWaveKeywords, 'i').test(text);
   const combinedHeight = combinedWaveSwell ? findHeightAround(text, combinedWaveKeywords) : null;
   if (wind !== null) $('wind').value = wind;
@@ -141,7 +152,7 @@ function parseClause() {
     $('wave').value = significantHeight ?? combinedHeight ?? genericHeight ?? 2;
     setWaveMode('significant');
   } else if (anyHeight) {
-    if (swellHeight !== null) $('swellHeight').value = swellHeight;
+    $('swellHeight').value = swellHeight ?? 2;
     $('windWaveHeight').value = windWaveHeight ?? genericHeight ?? $('windWaveHeight').value;
     setWaveMode('component');
   } else { $('wave').value = 2; setWaveMode('significant'); }
