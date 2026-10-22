@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=no-sidebar-20261022" />
     <style>
       .clause-input{background:#eaf3f0;border:1px solid #d0e4de;border-radius:8px;padding:23px 24px;margin-bottom:22px;display:grid;grid-template-columns:.83fr 1.45fr;gap:28px}.clause-input-copy>p:not(.eyebrow){font-size:11px;line-height:1.7;color:#5d7474;margin:13px 0}.detect-list{display:flex;gap:6px;flex-wrap:wrap}.detect-list span{font:9px 'DM Mono';color:#356e6b;background:#d6ebe5;border-radius:20px;padding:5px 7px}.clause-editor{background:#fff;border:1px solid #d9e4e1;border-radius:5px;overflow:hidden}.clause-editor textarea{border:0;resize:vertical;display:block;width:100%;height:116px;padding:13px 14px;font:11px/1.65 'DM Mono',monospace;color:#365354;outline:0}.editor-footer{border-top:1px solid #e4ebe9;padding:8px 10px 8px 14px;display:flex;align-items:center;justify-content:space-between;gap:15px}.editor-footer small{font-size:10px;color:#66807f}.editor-footer .primary{padding:8px 11px;font-size:11px}.profile-head{display:flex;justify-content:space-between;align-items:center;margin:22px 0 8px}.profile-note{font:10px 'DM Mono';color:#81908f}.profile-table{border:1px solid #dce7e4;border-radius:5px;overflow:hidden}.profile-row{display:grid;grid-template-columns:1.2fr .7fr .8fr 1fr;align-items:center;min-height:39px;padding:6px 10px;border-top:1px solid #e4ecea;font-size:10px}.profile-row:first-child{border-top:0}.profile-labels{min-height:auto;background:#eff5f3;color:#708381;font:9px 'DM Mono';letter-spacing:.35px;text-transform:uppercase}.condition{font-weight:700}.condition.laden{color:#277c73}.condition.ballast{color:#44788e}.condition.other{color:#8a795f}.power{justify-self:start;border-radius:12px;padding:3px 7px;font:9px 'DM Mono';letter-spacing:.3px}.power.eco{background:#ddf0e9;color:#29766c}.power.full{background:#e4eff5;color:#397087}.power.other{background:#f2eee7;color:#8a704d}.profile-row input{width:53px;background:transparent;border:0;border-bottom:1px solid #c5d8d5;padding:2px 0;color:#1c4a4b;font:700 12px 'DM Mono';outline:0}.profile-row input::placeholder{color:#9ca9a7}.profile-row small{font:9px 'DM Mono';color:#718685;margin-left:3px}.other-profile{background:#fcfcfa}.abt-band{margin-top:15px}@media(max-width:900px){.clause-input{grid-template-columns:1fr}}@media(max-width:540px){.clause-input{padding:18px}.editor-footer{align-items:flex-start;flex-direction:column}.clause-editor textarea{height:150px}.profile-row{grid-template-columns:1.1fr .75fr .9fr 1fr;padding:6px}.profile-row input{width:39px}}
       .warranty-card .card-heading,.weather-card .card-heading,.exclusions-card .card-heading,.compact-window .card-heading{display:none}.warranty-grid{grid-template-columns:2fr .78fr}.weather-grid{grid-template-columns:1.35fr .9fr}.profile-head{margin-top:2px}.profile-head .label{display:none}.compact-window{padding:20px 22px;display:flex;flex-direction:column;justify-content:center;min-height:0}.compact-window .window-content{display:flex;align-items:baseline;gap:12px}.compact-window .window-number{margin:0;padding:0;border:0}.compact-window .window-number input{font-size:35px;width:78px}.compact-window .window-title{margin:0;font:10px 'DM Mono';color:#a6c4bf;text-transform:uppercase;letter-spacing:.4px}.window-rules{display:flex;gap:9px;margin-top:14px}.window-rules span{background:#285356;border-radius:3px;padding:7px;font-size:9px;color:#b9d2cd;line-height:1.35;flex:1}.window-rules b{display:block;color:#8dd9c4;font:600 13px 'DM Mono';margin-bottom:2px}.wave-reading{display:grid;gap:4px}.wave-reading strong{font:800 10px/1.15 Manrope;text-transform:uppercase;letter-spacing:.8px;color:#1a5c5d}.wave-reading b{font-size:24px!important;color:#08746e!important}.wave-limit{color:#08716b!important;font-weight:800!important}.wave-limit input{border-color:#83bdb5!important;background:#eaf6f2!important}@media(max-width:900px){.warranty-grid,.weather-grid{grid-template-columns:1fr}}@media(max-width:540px){.compact-window .window-content{align-items:flex-start;flex-direction:column;gap:2px}.window-rules{width:100%}}
@@ -38,18 +38,13 @@
     <style>
       .weather-card .wave-limit{font-size:11px;font-weight:800}.weather-card .secondary-wave-grid label{font-size:10px;font-weight:800}.weather-card .wave-limit input,.weather-card .secondary-wave-grid input{font-size:12px;font-weight:600;padding:8px}.weather-card .wave-limit input{padding-right:25px}.weather-card .wave-limit span,.weather-card .secondary-wave-grid span{font-size:10px;bottom:9px;right:8px}
     </style>
+    <style>
+      #parseBtn{font-size:15px;font-weight:700;line-height:1.4;padding:11px 18px;min-height:44px;flex-shrink:0;white-space:nowrap}
+      .source-heading{display:block;margin:2px 0 10px;font-size:18px;font-weight:800;line-height:1.5;color:#173d40}
+    </style>
   </head>
   <body>
-    <aside class="sidebar">
-      <div class="brand"><span class="mark">⌁</span><span>MARITIME<br /><b>INTELLIGENCE</b></span></div>
-      <nav>
-        <a class="active" href="#overview"><span>▦</span> Assessment</a>
-        <a href="#clause"><span>≡</span> Clause Input</a>
-        <a href="#rules"><span>◈</span> Rule Library</a>
-      </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Rule engine online<br /><small>v0.1 · Prototype</small></div>
-    </aside>
-
+    <style>main{margin-inline:auto;width:100%}</style>
     <main id="overview">
       <header>
         <div>
@@ -64,8 +59,8 @@
         <div class="clause-input-copy">
           <p class="eyebrow">SOURCE DOCUMENT / CP CLAUSE</p>
           <h2 id="clauseInputTitle">Paste the performance clause</h2>
-          <p>粘贴英文 CP 性能条款。原型将识别速度、油耗、ABT、连续时间及气象限制，并同步更新下方分析面板。</p>
-          <div class="detect-list"><span>Speed</span><span>Consumption</span><span>ABT</span><span>Weather</span></div>
+          <p>粘贴英文 CP 性能条款。点击解析后，系统更新下方选项，并摘录识别到的合同原文。</p>
+          <div class="detect-list"><span>ABOUT</span><span>WOG</span><span>Weather</span><span>Time / Current</span><span>Extrapolation</span></div>
         </div>
         <div class="clause-editor">
           <textarea id="clauseText" spellcheck="false" aria-label="CP clause input">Vessel is warranted to perform 10.5 knots on a consumption of 20.0 MT per day in good weather, about 0.5 knots and 5% more or less. Good weather means wind force not exceeding Beaufort scale 4, Douglas sea state 3 and significant wave height not exceeding 2.0 metres, for 24 consecutive hours. No adverse current and no extrapolation allowed.</textarea>
@@ -76,10 +71,10 @@
       <section class="grid warranty-grid" id="clause">
         <article class="card warranty-card">
           <div class="card-heading"><div><p class="eyebrow">01 / CONTRACTED PERFORMANCE</p><h2>CP Warranty &amp; ABT</h2></div><span class="tag">CORE TERM</span></div>
-          <div class="profile-head"><span class="label">Performance clause notebook</span><span class="profile-note">Manual review · no automatic figures</span></div>
-          <p class="notebook-help">系统仅粘贴检测到的速度、油耗、燃油和装载状态原文；不会自动计算或填充性能保证数值。</p>
-          <textarea id="performanceNotes" class="performance-notes" spellcheck="false" aria-label="Performance clause notebook" placeholder="No speed / consumption terms detected."></textarea>
-          <div class="notebook-footer"><span id="performanceNoteStatus">Awaiting clause analysis</span><span>Editable notes</span></div>
+          <label for="performanceNotes" class="source-heading">相关设置来源 （合同原文）</label>
+          <p class="notebook-help">展示上方合同中被识别、影响下方选项的原文片段，按原文顺序摘录，不改写、不重复。</p>
+          <textarea id="performanceNotes" class="performance-notes" spellcheck="false" readonly placeholder="解析后，被识别的合同原文将显示在这里。"></textarea>
+          <div class="notebook-footer"><span id="performanceNoteStatus" aria-live="polite">等待条款解析</span><span>原文摘录 · 可选择复制</span></div>
         </article>
 
       </section>
@@ -111,6 +106,6 @@
       </section>
 
     </main>
-    <script src="app.js?v=claim-weather-rules-20261019"></script>
+    <script src="app.js?v=recognized-source-20261022"></script>
   </body>
 </html>

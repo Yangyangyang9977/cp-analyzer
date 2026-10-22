@@ -47,15 +47,18 @@ function matchesNoCurrentFactor(text) {
   const continuousPeriod = /good\s+weather\s+period[\s\S]{0,180}\d+\s*hours?[\s\S]{0,100}noon\s+to\s+noon[\s\S]{0,180}(?:continuously|entire\s+period)[\s\S]{0,100}(?:criteria|comply)/.test(text);
   return explicit || noonToNoonDay || continuousPeriod;
 }
-function matchesNoExtrapolation(text) {
+function matchesInvalidExtrapolation(text) {
   // Line wrapping does not end a clause; sentence/semicolon boundaries do.
   const segments = text.split(/[;.!?]+/);
-  const invalidClause = segments.some((segment) =>
+  return segments.some((segment) =>
     /\bextrapolations?\b/i.test(segment) &&
     /\bweather[\s-]+conditions?\b/i.test(segment) &&
     /\b(?:described|defined|specified|stated|set\s+out)\s+above\b/i.test(segment)
   );
-  if (invalidClause) return false;
+}
+function matchesNoExtrapolation(text) {
+  const segments = text.split(/[;.!?]+/);
+  if (matchesInvalidExtrapolation(text)) return false;
   // Explicit claim restrictions are distinct from merely defining good weather.
   const restrictedClaims = segments.some((segment) => [
     /\bclaims?\s+(?:(?:can|may|shall)\s+)?only\s+be\s+(?:submitted|brought|made)\s+(?:in\s+respect\s+of|for)\s+(?:(?:the|those)\s+)?periods?\s+(?:during|in)\s+which\s+the\s+vessel\s+encounters?\s+good\s+weather\b/i,
@@ -90,15 +93,7 @@ function updateWaveControls(source) {
   else if (source === 'component') setWaveMode($('swellSwitch').checked || $('windWaveSwitch').checked ? 'component' : 'significant');
   else setWaveMode($('sigWaveSwitch').checked ? 'significant' : 'component');
 }
-function extractPerformanceNotes(rawText) {
-  const performanceTerms = /\b(?:speed|knots?|kts?|consumption|consume|vlsfo|lsmgo|bunker|ballast|laden|eco|full|other|abt|about)\b/i;
-  const excludedContext = /\b(?:port(?:s)?|idle|boiler|(?:de)?ballasting|entering|leaving|maneuv(?:er|r)ing|manoeuvring|exchange\s+of\s+ballast|shallow\s+water|channels?|narrow\s+waterways?|hold\s+cleaning|poor\s+visibility|heavy\s+traffic|low\s+load|load\s+change|incinerator|generator)\b/i;
-  const nonWarrantyContext = /\b(?:gain\s+on\s+time|off[\s-]?set|claims?|under[\s-]?performance)\b/i;
-  // Split adjoining sentences too, but never split decimal performance figures.
-  const sentences = rawText.split(/(?:\r?\n+|;)+|(?<=[.!?])\s+(?=[A-Z“‘'])|(?<=[.!?])(?=[A-Za-z])/).map((sentence) => sentence.trim()).filter(Boolean);
-  return sentences.filter((sentence) => performanceTerms.test(sentence) && !excludedContext.test(sentence) && !nonWarrantyContext.test(sentence)).join('\n');
-}
-function parseAbout(rawText) {
+function readAbout(rawText) {
   const text = normalizeClause(rawText);
   const clauses = text.split(/[;!?]|\.(?!\d)/).filter((part) => /\b(?:abt|about|tolerance|tollerance)\b/.test(part));
   let speed = null;
@@ -116,19 +111,25 @@ function parseAbout(rawText) {
       else if (unit === '%') fuel = `${value}%`;
     }
   }
+  return { speed, fuel };
+}
+function parseAbout(rawText) {
+  const { speed, fuel } = readAbout(rawText);
   $('aboutSpeed').textContent = speed ?? '0.5 kt';
   $('aboutFuel').textContent = fuel ?? '5%';
   $('aboutStatus').textContent = speed || fuel ? `速度：${speed ? '条款提取' : '默认'} · 油耗：${fuel ? '条款提取' : '默认'}` : '默认容差';
 }
-function updateWog(rawText) {
+function matchesWog(rawText) {
   const rules = [
     { pattern: /\bwog\b/i, label: 'WOG' },
     { pattern: /\bwithout\s+guarantee\b/i, label: 'WITHOUT GUARANTEE' },
     { pattern: /\bfor\s+(?:reference|refference)\s+only\b/i, label: 'FOR REFERENCE ONLY' },
     { pattern: /\bgood\s+faith\b/i, label: 'GOOD FAITH' }
   ];
-  const matched = rules.filter((rule) => rule.pattern.test(rawText));
-  $('wogCard').classList.toggle('active', matched.length > 0);
+  return rules.some((rule) => rule.pattern.test(rawText));
+}
+function updateWog(rawText) {
+  $('wogCard').classList.toggle('active', matchesWog(rawText));
 }
 function updateDashboard() {
 }
@@ -137,30 +138,15 @@ function parseClause() {
   const text = normalizeClause(rawText);
   parseAbout(rawText);
   updateWog(rawText);
-  const notes = extractPerformanceNotes(rawText);
-  $('performanceNotes').value = notes;
-  $('performanceNoteStatus').textContent = notes ? 'Relevant clause text copied for manual review' : 'No speed / consumption fields detected';
+  updateClauseEvidence(rawText);
 
   const hours = findContinuousHours(text);
-  const allTimeGoodWeather = /all\s+time\s+from\s+noon\s+to\s+noon\s+has\s+to\s+be\s+in\s+good\s+weather(?:\s+as\s+defined\s+above)?/.test(text);
+  const allTimeGoodWeather = matchesAllTimeGoodWeather(text);
   updateTimeWindow(hours ?? 1, hours !== null || allTimeGoodWeather);
 
-  const wind = findNumber([/\b(?:beaufort|beafort|bf|wind)\s*(?:force|scale|sc)?\s*(\d+)\b/], text);
-  const sea = findNumber([/(?:douglas\s*)?(?:sea\s*state|dss)\s*(\d)/], text);
-  const significantKeywords = '\\b(?:significant|sig\\.?)\\s*(?:waves?(?:\\s*heights?)?|heights?)\\b';
-  const significantHeight = findHeightAround(text, significantKeywords);
-  const swellHeight = findHeightAround(text, 'swell(?:\\s*wave)?\\s*height');
-  const windWaveHeight = findHeightAround(text, 'wind[\\s-]*waves?\\s*height');
-  // An explicit metre value in parentheses after DSS is a height, not a scale conversion.
-  const seaStateHeight = findNumber([/\b(?:douglas\s+sea\s+state|sea\s+state|dss)\s*\d+\s*\(\s*(?:max(?:imum)?\s*)?(\d+(?:\.\d+)?)\s*(?:metres?|meters?|m)\b\s*\)/], text);
-  const genericHeight = findHeightAround(text, '(?:wave\\s*)?heights?') ?? seaStateHeight;
-  const combinedWaveKeywords = '(?:combined\\s+|(?:the\\s+)?(?:sum|combination)\\s+of\\s+)(?:(?:waves?|sea)(?:\\s+heights?)?\\s*(?:\\+|and)\\s*swell(?:\\s+heights?)?|swell(?:\\s+heights?)?\\s*(?:\\+|and)\\s*(?:waves?|sea)(?:\\s+heights?)?)';
-  const combinedWaveSwell = new RegExp(combinedWaveKeywords, 'i').test(text);
-  const combinedHeight = combinedWaveSwell ? findHeightAround(text, combinedWaveKeywords) : null;
+  const { wind, sea, significantHeight, swellHeight, windWaveHeight, genericHeight, combinedHeight, significant, anyHeight } = readWeatherConditions(text);
   if (wind !== null) $('wind').value = wind;
   if (sea !== null) $('sea').value = sea;
-  const significant = significantHeight !== null || new RegExp(significantKeywords, 'i').test(text) || combinedWaveSwell;
-  const anyHeight = genericHeight !== null || swellHeight !== null || windWaveHeight !== null;
   if (significant) {
     $('wave').value = significantHeight ?? combinedHeight ?? genericHeight ?? 2;
     setWaveMode('significant');
@@ -178,15 +164,111 @@ function parseClause() {
   $('parseStatus').textContent = found ? `${found} conditions detected · dashboard updated` : 'No recognised conditions found · dashboard kept at defaults';
 }
 
+function matchesAllTimeGoodWeather(text) {
+  return /all\s+time\s+from\s+noon\s+to\s+noon\s+has\s+to\s+be\s+in\s+good\s+weather(?:\s+as\s+defined\s+above)?/.test(text);
+}
+function readWeatherConditions(text) {
+  const wind = findNumber([/\b(?:beaufort|beafort|bf|wind)\s*(?:force|scale|sc)?\s*(\d+)\b/], text);
+  const sea = findNumber([/(?:douglas\s*)?(?:sea\s*state|dss)\s*(\d)/], text);
+  const significantKeywords = '\\b(?:significant|sig\\.?)\\s*(?:waves?(?:\\s*heights?)?|heights?)\\b';
+  const significantHeight = findHeightAround(text, significantKeywords);
+  const swellHeight = findHeightAround(text, 'swell(?:\\s*wave)?\\s*height');
+  const windWaveHeight = findHeightAround(text, 'wind[\\s-]*waves?\\s*height');
+  // An explicit metre value in parentheses after DSS is a height, not a scale conversion.
+  const seaStateHeight = findNumber([/\b(?:douglas\s+sea\s+state|sea\s+state|dss)\s*\d+\s*\(\s*(?:max(?:imum)?\s*)?(\d+(?:\.\d+)?)\s*(?:metres?|meters?|m)\b\s*\)/], text);
+  const genericHeight = findHeightAround(text, '(?:wave\\s*)?heights?') ?? seaStateHeight;
+  const combinedWaveKeywords = '(?:combined\\s+|(?:the\\s+)?(?:sum|combination)\\s+of\\s+)(?:(?:waves?|sea)(?:\\s+heights?)?\\s*(?:\\+|and)\\s*swell(?:\\s+heights?)?|swell(?:\\s+heights?)?\\s*(?:\\+|and)\\s*(?:waves?|sea)(?:\\s+heights?)?)';
+  const combinedWaveSwell = new RegExp(combinedWaveKeywords, 'i').test(text);
+  const combinedHeight = combinedWaveSwell ? findHeightAround(text, combinedWaveKeywords) : null;
+  const significant = significantHeight !== null || new RegExp(significantKeywords, 'i').test(text) || combinedWaveSwell;
+  const anyHeight = genericHeight !== null || swellHeight !== null || windWaveHeight !== null;
+  return { wind, sea, significantHeight, swellHeight, windWaveHeight, genericHeight, combinedHeight, significant, anyHeight };
+}
+
+function splitSourceClauses(rawText) {
+  // Keep original spelling, punctuation and soft line wraps; decimals and common
+  // clause abbreviations are not sentence endings.
+  const pieces = [];
+  let start = 0;
+  for (const boundary of rawText.matchAll(/[.!?;]|\r?\n/g)) {
+    const index = boundary.index;
+    if (boundary[0] === '.' && (
+      /\d/.test(rawText[index - 1] ?? '') && /\d/.test(rawText[index + 1] ?? '') ||
+      /\b(?:abt|sig|i|e)\.$/i.test(rawText.slice(0, index + 1))
+    )) continue;
+    let end = index + boundary[0].length;
+    while (/[)\]"\u201d\u2019]/.test(rawText[end] ?? '') && end < rawText.length) end++;
+    const source = rawText.slice(start, end).trim();
+    if (source) pieces.push({ source, start, end });
+    start = end;
+  }
+  const tail = rawText.slice(start).trim();
+  if (tail) pieces.push({ source: tail, start, end: rawText.length });
+  return pieces;
+}
+function extractRecognizedSource(rawText) {
+  const pieces = splitSourceClauses(rawText);
+  const normalized = pieces.map(piece => normalizeClause(piece.source));
+  const selected = new Set();
+  // Use the same readers as the controls, including the OFF exception for
+  // extrapolation. Do not infer evidence from defaults or fuel keywords alone.
+  const detectors = [
+    text => readAbout(text).speed !== null,
+    text => readAbout(text).fuel !== null,
+    matchesWog,
+    ...['wind', 'sea', 'significantHeight', 'swellHeight', 'windWaveHeight', 'genericHeight', 'combinedHeight']
+      .map(key => text => readWeatherConditions(text)[key] !== null),
+    text => readWeatherConditions(text).significant,
+    text => findContinuousHours(text) !== null,
+    matchesAllTimeGoodWeather,
+    matchesNoAdverseCurrent,
+    matchesNoCurrentFactor,
+    matchesNoExtrapolation,
+    matchesInvalidExtrapolation
+  ];
+  for (const detect of detectors) {
+    normalized.forEach((text, index) => { if (detect(text)) selected.add(index); });
+    // Some existing rules deliberately combine criteria across sentences.
+    // Include the shortest contiguous supporting passages for those matches.
+    if (!detect(normalizeClause(rawText))) continue;
+    let start = 0;
+    for (let end = 0; end < pieces.length; end++) {
+      if (!detect(normalized.slice(start, end + 1).join('\n'))) continue;
+      while (start < end && detect(normalized.slice(start + 1, end + 1).join('\n'))) start++;
+      for (let index = start; index <= end; index++) selected.add(index);
+      start = end + 1;
+    }
+  }
+  // Merge adjacent selected pieces by slicing the original input, preserving
+  // its actual whitespace and wrapped lines rather than reconstructing text.
+  const excerpts = [];
+  for (let index = 0; index < pieces.length; index++) {
+    if (!selected.has(index)) continue;
+    const start = pieces[index].start;
+    while (selected.has(index + 1)) index++;
+    excerpts.push(rawText.slice(start, pieces[index].end).trim());
+  }
+  return excerpts.join('\n\n');
+}
+function updateClauseEvidence(rawText) {
+  const source = extractRecognizedSource(rawText);
+  $('performanceNotes').value = source;
+  $('performanceNoteStatus').textContent = source ? '已摘录识别到的合同原文' : '未识别到影响下方选项的合同原文';
+}
+
 fields.forEach((id) => $(id).addEventListener('input', () => { if (id === 'hours') $('windowValue').textContent = `${Number($('hours').value) || 1}h`; updateDashboard(); }));
 [$('current'), $('extrapolation'), $('noCurrentFactor')].forEach((el) => el.addEventListener('change', updateDashboard));
 $('sigWaveSwitch').addEventListener('change', () => updateWaveControls('significant'));
 [$('swellSwitch'), $('windWaveSwitch')].forEach((el) => el.addEventListener('change', () => updateWaveControls('component')));
 $('clauseText').addEventListener('input', () => { const text = normalizeClause($('clauseText').value); $('noCurrentFactor').checked = matchesNoCurrentFactor(text); $('extrapolation').checked = matchesNoExtrapolation(text); updateDashboard(); });
-$('resetBtn').addEventListener('click', () => { document.querySelectorAll('input').forEach((input) => { if (input.type === 'checkbox') input.checked = input.defaultChecked; else input.value = input.defaultValue; }); document.querySelectorAll('select').forEach((select) => select.selectedIndex = [...select.options].findIndex((option) => option.defaultSelected)); $('performanceNotes').value = ''; $('performanceNoteStatus').textContent = 'Awaiting clause analysis'; updateTimeWindow(1, false); updateWaveControls(); updateDashboard(); });
+$('resetBtn').addEventListener('click', () => { document.querySelectorAll('input').forEach((input) => { if (input.type === 'checkbox') input.checked = input.defaultChecked; else input.value = input.defaultValue; }); document.querySelectorAll('select').forEach((select) => select.selectedIndex = [...select.options].findIndex((option) => option.defaultSelected)); $('performanceNotes').value = ''; $('performanceNoteStatus').textContent = '等待条款解析'; updateTimeWindow(1, false); updateWaveControls(); updateDashboard(); });
 $('parseBtn').addEventListener('click', parseClause);
 $('resetBtn').addEventListener('click', () => { parseAbout(''); updateWog(''); });
 $('clauseText').addEventListener('input', () => updateWog($('clauseText').value));
+$('clauseText').addEventListener('input', () => {
+  $('performanceNotes').value = '';
+  $('performanceNoteStatus').textContent = '条款已更改，请点击 Parse clause 更新原文摘录';
+});
 updateWaveControls();
 updateTimeWindow(1, false);
 updateDashboard();
