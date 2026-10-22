@@ -102,11 +102,23 @@ function readAbout(rawText) {
     const both = clause.match(/\bboth\s*(\d+(?:\.\d+)?)\s*%/);
     if (both) { speed = `${Number(both[1])}%`; fuel = `${Number(both[1])}%`; continue; }
     const labels = [...clause.matchAll(/\b(speed|spd|(?:(?:fuel|bunkers?)\s+)?(?:over[\s-]*)?consumption|bunkers?)\b/g)];
-    for (const number of clause.matchAll(/(\d+(?:\.\d+)?)\s*(%|knots?|knts?|kts?)\b|(?:(\d+(?:\.\d+)?)\s*(%))/g)) {
-      const value = Number(number[1] ?? number[3]);
-      const unit = number[2] ?? number[4];
-      const nearest = labels.map((label) => ({ label, distance: Math.min(Math.abs(label.index - (number.index + number[0].length)), Math.abs(number.index - (label.index + label[0].length))) })).sort((a, b) => a.distance - b.distance)[0];
-      if (!nearest || nearest.distance > 80) continue;
+    for (const number of clause.matchAll(/(\d+(?:\.\d+)?)\s*(%|knots?|knts?|kts?|kns?)(?![a-z])/g)) {
+      const value = Number(number[1]);
+      const unit = number[2];
+      const nearest = labels.map((label) => {
+        const labelEnd = label.index + label[0].length;
+        const numberEnd = number.index + number[0].length;
+        const gap = label.index < number.index
+          ? clause.slice(labelEnd, number.index)
+          : clause.slice(numberEnd, label.index);
+        // A conjunction starts the next allowance. Do not reach backwards
+        // across "speed AND 5% upwards in consumption" to overwrite speed.
+        const separated = /\b(?:and|or)\b|[;&/]|\d/.test(gap.replace(/\+\s*\/\s*-/g, ''));
+        const compatible = unit === '%' || /^(?:speed|spd)$/.test(label[0]);
+        return { label, distance: gap.length, eligible: !separated && compatible };
+      }).filter(candidate => candidate.eligible && candidate.distance <= 80)
+        .sort((a, b) => a.distance - b.distance)[0];
+      if (!nearest) continue;
       if (/speed|spd/.test(nearest.label[0])) speed = `${value}${unit === '%' ? '%' : ' kt'}`;
       else if (unit === '%') fuel = `${value}%`;
     }
@@ -116,6 +128,7 @@ function readAbout(rawText) {
 function parseAbout(rawText) {
   const { speed, fuel } = readAbout(rawText);
   $('aboutSpeed').textContent = speed ?? '0.5 kt';
+  $('speedAllowance').classList.toggle('percentage-alert', speed === '5%');
   $('aboutFuel').textContent = fuel ?? '5%';
   $('aboutStatus').textContent = speed || fuel ? `速度：${speed ? '条款提取' : '默认'} · 油耗：${fuel ? '条款提取' : '默认'}` : '默认容差';
 }

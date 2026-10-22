@@ -41,6 +41,9 @@
     <style>
       #parseBtn{font-size:15px;font-weight:700;line-height:1.4;padding:11px 18px;min-height:44px;flex-shrink:0;white-space:nowrap}
       .source-heading{display:block;margin:2px 0 10px;font-size:18px;font-weight:800;line-height:1.5;color:#173d40}
+      .allowance-row .wog-card.active{background:#fff3cd;border-color:#e6c460;color:#815d08}
+      .about-values #speedAllowance.percentage-alert{background:#fff3cd;box-shadow:inset 0 0 0 1px #e6c460}
+      #speedAllowance.percentage-alert span,#speedAllowance.percentage-alert strong{color:#815d08}
     </style>
   </head>
   <body>
@@ -82,7 +85,7 @@
       <div class="allowance-row">
       <section class="card about-card" aria-label="ABOUT allowances">
         <h2>ABOUT</h2>
-        <div class="about-values"><div><span>Speed / 速度</span><strong id="aboutSpeed">0.5 kt</strong></div><div><span>Fuel consumption / 油耗</span><strong id="aboutFuel">5%</strong></div></div>
+        <div class="about-values"><div id="speedAllowance"><span>Speed / 速度</span><strong id="aboutSpeed">0.5 kt</strong></div><div><span>Fuel consumption / 油耗</span><strong id="aboutFuel">5%</strong></div></div>
         <small id="aboutStatus">默认容差</small>
       </section>
       <section id="wogCard" class="card wog-card" aria-label="WOG status" aria-live="polite">
@@ -106,6 +109,6 @@
       </section>
 
     </main>
-    <script src="app.js?v=recognized-source-20261022"></script>
+    <script src="app.js?v=about-phrase-matching-20261022"></script>
   </body>
 </html>
