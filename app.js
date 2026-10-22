@@ -30,11 +30,15 @@ function findContinuousHours(text) {
   ], timeText);
 }
 function findHeightAround(text, keywordSource) {
-  const unitNumber = '(?:max(?:imum)?\\s*)?(\\d+(?:\\.\\d+)?)\\s*(?:m|met(?:er|re)s?)';
+  const unitNumber = '(?:max(?:imum)?\\s*)?(\\d+(?:\\.\\d+)?)\\s*(?:m|mtrs?|met(?:er|re)s?)\\b';
   const afterKeyword = new RegExp(`${keywordSource}[\\s\\S]{0,60}?${unitNumber}`, 'i');
   const beforeKeyword = new RegExp(`${unitNumber}[\\s\\S]{0,60}?${keywordSource}`, 'i');
   const match = text.match(afterKeyword) ?? text.match(beforeKeyword);
   return match ? Number(match[1]) : null;
+}
+function matchesNoAdverseCurrent(text) {
+  return /\b(?:no|without)\s+adverse\s+currents?\b/.test(text) ||
+    /\bno\s+negative\s+influence\s+(?:by|of|from)\s+(?:swell\s*(?:\/|and|&)\s*)?adverse\s+currents?\b/.test(text);
 }
 function matchesNoCurrentFactor(text) {
   if (/\bno\s+average\s+current\s+factor\b/i.test(text)) return true;
@@ -52,7 +56,14 @@ function matchesNoExtrapolation(text) {
     /\b(?:described|defined|specified|stated|set\s+out)\s+above\b/i.test(segment)
   );
   if (invalidClause) return false;
-  return /\bextrapolations?\b|\b(?:didymi|didimy)\s+(?:principle|case(?:\s+calculations?)?)\s+(?:(?:is|are|shall|will)\s+)?not\s+(?:to\s+apply|(?:to\s+be\s+|be\s+)?applied)\b/i.test(text);
+  // Explicit claim restrictions are distinct from merely defining good weather.
+  const restrictedClaims = segments.some((segment) => [
+    /\bclaims?\s+(?:(?:can|may|shall)\s+)?only\s+be\s+(?:submitted|brought|made)\s+(?:in\s+respect\s+of|for)\s+(?:(?:the|those)\s+)?periods?\s+(?:during|in)\s+which\s+the\s+vessel\s+encounters?\s+good\s+weather\b/i,
+    /\bclaims?(?:\s+arising\s+therefrom)?\s+(?:(?:shall|will|must)\s+be|are)\s+(?:restricted|limited)\s+to\s+(?:only\s+)?(?:that\s+|the\s+|qualifying\s+)?good\s+weather\s+periods?\b/i,
+    /\bclaims?\s+(?:(?:can|may|shall)\s+)?only\s+be\s+(?:submitted|brought|made)\s+(?:in\s+respect\s+of|for)\s+(?:(?:the|qualifying)\s+)?good\s+weather\s+periods?\b/i,
+    /\bno\s+claims?(?:\s+whatsoever)?\s+(?:may|can|shall)\s+be\s+(?:brought|made|submitted)\s+for\s+[^;.!?]{0,150}?\bduring\s+(?:periods?\s+of\s+time\s+that\s+are\s+not\s+good\s+weather\s+periods?|bad\s+weather\s+periods?|non[\s-]+good[\s-]+weather\s+periods?)\b/i
+  ].some((pattern) => pattern.test(segment)));
+  return restrictedClaims || /\bextrapolations?\b|\b(?:didymi|didimy)\s+(?:principle|case(?:\s+calculations?)?)\s+(?:(?:is|are|shall|will)\s+)?not\s+(?:to\s+apply|(?:to\s+be\s+|be\s+)?applied)\b/i.test(text);
 }
 function updateTimeWindow(hours, fullyCompliant) {
   const value = Number(hours) || 1;
@@ -81,9 +92,10 @@ function updateWaveControls(source) {
 }
 function extractPerformanceNotes(rawText) {
   const performanceTerms = /\b(?:speed|knots?|kts?|consumption|consume|vlsfo|lsmgo|bunker|ballast|laden|eco|full|other|abt|about)\b/i;
-  const excludedContext = /\b(?:port(?:s)?|entering|leaving|maneuv(?:er|r)ing|manoeuvring|exchange\s+of\s+ballast|shallow\s+water|channels?|narrow\s+waterways?|hold\s+cleaning|poor\s+visibility|heavy\s+traffic|low\s+load|load\s+change|incinerator|generator)\b/i;
-  const nonWarrantyContext = /\b(?:gain\s+on\s+time|off-?set\s+against\s+loss)\b/i;
-  const sentences = rawText.split(/(?:\r?\n+|;)+|(?<=[.!?])\s+(?=[A-Z“‘'])/).map((sentence) => sentence.trim()).filter(Boolean);
+  const excludedContext = /\b(?:port(?:s)?|idle|boiler|(?:de)?ballasting|entering|leaving|maneuv(?:er|r)ing|manoeuvring|exchange\s+of\s+ballast|shallow\s+water|channels?|narrow\s+waterways?|hold\s+cleaning|poor\s+visibility|heavy\s+traffic|low\s+load|load\s+change|incinerator|generator)\b/i;
+  const nonWarrantyContext = /\b(?:gain\s+on\s+time|off[\s-]?set|claims?|under[\s-]?performance)\b/i;
+  // Split adjoining sentences too, but never split decimal performance figures.
+  const sentences = rawText.split(/(?:\r?\n+|;)+|(?<=[.!?])\s+(?=[A-Z“‘'])|(?<=[.!?])(?=[A-Za-z])/).map((sentence) => sentence.trim()).filter(Boolean);
   return sentences.filter((sentence) => performanceTerms.test(sentence) && !excludedContext.test(sentence) && !nonWarrantyContext.test(sentence)).join('\n');
 }
 function parseAbout(rawText) {
@@ -133,9 +145,10 @@ function parseClause() {
   const allTimeGoodWeather = /all\s+time\s+from\s+noon\s+to\s+noon\s+has\s+to\s+be\s+in\s+good\s+weather(?:\s+as\s+defined\s+above)?/.test(text);
   updateTimeWindow(hours ?? 1, hours !== null || allTimeGoodWeather);
 
-  const wind = findNumber([/(?:beaufort|beafort|bf|wind(?:\s*force|\s*scale)?)\s*(?:scale|sc)?\s*(\d)/], text);
+  const wind = findNumber([/\b(?:beaufort|beafort|bf|wind)\s*(?:force|scale|sc)?\s*(\d+)\b/], text);
   const sea = findNumber([/(?:douglas\s*)?(?:sea\s*state|dss)\s*(\d)/], text);
-  const significantHeight = findHeightAround(text, '(?:significant\\s*(?:wave\\s*)?height|sig\\.?\\s*(?:wave\\s*)?height)');
+  const significantKeywords = '\\b(?:significant|sig\\.?)\\s*(?:waves?(?:\\s*heights?)?|heights?)\\b';
+  const significantHeight = findHeightAround(text, significantKeywords);
   const swellHeight = findHeightAround(text, 'swell(?:\\s*wave)?\\s*height');
   const windWaveHeight = findHeightAround(text, 'wind[\\s-]*waves?\\s*height');
   // An explicit metre value in parentheses after DSS is a height, not a scale conversion.
@@ -146,7 +159,7 @@ function parseClause() {
   const combinedHeight = combinedWaveSwell ? findHeightAround(text, combinedWaveKeywords) : null;
   if (wind !== null) $('wind').value = wind;
   if (sea !== null) $('sea').value = sea;
-  const significant = significantHeight !== null || /(?:significant|sig\.?)\s*(?:wave\s*)?height/.test(text) || combinedWaveSwell;
+  const significant = significantHeight !== null || new RegExp(significantKeywords, 'i').test(text) || combinedWaveSwell;
   const anyHeight = genericHeight !== null || swellHeight !== null || windWaveHeight !== null;
   if (significant) {
     $('wave').value = significantHeight ?? combinedHeight ?? genericHeight ?? 2;
@@ -157,7 +170,7 @@ function parseClause() {
     setWaveMode('component');
   } else { $('wave').value = 2; setWaveMode('significant'); }
 
-  $('current').checked = /no\s+adverse\s+current|without\s+adverse\s+current/.test(text);
+  $('current').checked = matchesNoAdverseCurrent(text);
   $('noCurrentFactor').checked = matchesNoCurrentFactor(text);
   $('extrapolation').checked = matchesNoExtrapolation(text);
   const found = [hours, wind, sea, significantHeight, swellHeight, windWaveHeight].filter((value) => value !== null).length + Number($('noCurrentFactor').checked) + Number($('extrapolation').checked);
